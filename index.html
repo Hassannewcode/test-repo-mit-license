@@ -38,12 +38,15 @@
         </div>
         <div id="main-content">
     <div class="editor-tabs">
-        <div class="tab active">Seed Map</div>
+        <div class="tab active">2D Map</div>
+        <div class="tab">3D Map</div>
         <div class="tab">AI Chat</div>
     </div>
     <div id="map-container" class="content-panel">
         <canvas id="map-canvas"></canvas>
             </div>
+    <div id="3d-map-container" class="content-panel" style="display: none;">
+    </div>
     <div id="chat-container" class="content-panel" style="display: none;">
                 <div id="chat-messages"></div>
         <div class="chat-input-container">
@@ -56,6 +59,9 @@
         </div>
     </div>
     <script src="ai.js"></script>
+    <script src="stronghold.js"></script>
+    <script src="village.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

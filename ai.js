@@ -4,7 +4,8 @@ class AI {
     }
 
     parse(command) {
-        const requestedFeatures = this.keywords.filter(feature => command.toLowerCase().includes(feature));
-        return requestedFeatures;
+        // This is a placeholder for a more sophisticated NLP system.
+        // For now, we'll just return the command as a single feature.
+        return [command];
     }
 }

@@ -11,7 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
 
-            const target = tab.textContent === 'Seed Map' ? 'map-container' : 'chat-container';
+            const target = {
+                '2D Map': 'map-container',
+                '3D Map': '3d-map-container',
+                'AI Chat': 'chat-container'
+            }[tab.textContent];
+
             contentPanels.forEach(panel => {
                 if (panel.id === target) {
                     panel.style.display = 'flex';
@@ -88,22 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 thinkingMessage.remove();
                 displayMessage('ai', 'Hello! I am a Minecraft seed generation AI. How can I help you today?');
             } else if (command.toLowerCase().includes('find')) {
-                const featureInput = document.getElementById('feature-input');
-                const requestedFeatures = featureInput.value.split(',').map(s => s.trim()).filter(s => s);
                 const ai = new AI();
-                const validFeatures = requestedFeatures.filter(feature => ai.keywords.includes(feature));
-
-                if (validFeatures.length > 0) {
-                    if (validFeatures.includes('stronghold')) {
-                        thinkingMessage.remove();
-                        displayMessage('ai', "I'm still learning how to find strongholds. Ask me again later!");
-                    } else {
-                        findSeedWithFeatures(validFeatures, thinkingMessage);
-                    }
-                } else {
-                    thinkingMessage.remove();
-                    displayMessage('ai', `I can't find that. I can look for: ${ai.keywords.join(', ')}.`);
-                }
+                const requestedFeatures = ai.parse(command);
+                findSeedWithFeatures(requestedFeatures, thinkingMessage);
             } else {
                 thinkingMessage.remove();
                 displayMessage('ai', "I'm sorry, I don't understand that command. You can ask me to 'find a <feature> seed' or say 'hello'.");
@@ -117,58 +109,9 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.width = mapSize;
         canvas.height = mapSize;
 
-        // A very simple seed-based random number generator
-        let random = (function(seed) {
-            let a = seed;
-            return function() {
-                a = (a * 9301 + 49297) % 233280;
-                return a / 233280;
-            };
-        })(seed);
-
-        const data = Array(mapSize).fill(0).map(() => Array(mapSize).fill(0));
-        const roughness = 0.8;
-
-        function diamondSquare(size, seed, roughness) {
-            const data = Array(size).fill(0).map(() => Array(size).fill(0));
-            let random = (function(seed) {
-                let a = seed;
-                return function() {
-                    a = (a * 9301 + 49297) % 233280;
-                    return a / 233280;
-                };
-            })(seed);
-
-            function d2(x1, y1, x2, y2, level) {
-                if (level < 1) return;
-
-                // Diamond step
-                for (let i = x1 + level; i < x2; i += level) {
-                    for (let j = y1 + level; j < y2; j += level) {
-                        let avg = (data[i - level][j - level] + data[i][j - level] + data[i - level][j] + data[i][j]) / 4;
-                        data[i - level / 2][j - level / 2] = avg + (random() - 0.5) * roughness * level;
-                    }
-                }
-
-                // Square step
-                for (let i = x1 + 2 * level; i < x2; i += level) {
-                    for (let j = y1 + 2 * level; j < y2; j += level) {
-                        let d1 = data[i - level][j] + data[i][j] + data[i - level / 2][j + level / 2] + data[i - level / 2][j - level / 2] / 4;
-                        let d2 = data[i][j - level] + data[i][j] + data[i + level / 2][j - level / 2] + data[i - level / 2][j - level / 2] / 4;
-                        let d3 = data[i - level][j - level] + data[i - level][j] + data[i - level / 2][j - level / 2] + data[i - level / 2][j + level / 2] / 4;
-                        let d4 = data[i][j - level] + data[i - level][j - level] + data[i - level / 2][j - level / 2] + data[i + level / 2][j - level / 2] / 4;
-                        data[i - level / 2][j] = d1 + (random() - 0.5) * roughness * level;
-                        data[i][j - level / 2] = d2 + (random() - 0.5) * roughness * level;
-                    }
-                }
-                d2(x1, y1, x2, y2, level / 2);
-            }
-            d2(0,0,size-1,size-1,size-1)
-            return data;
-        }
-
         const heightMap = diamondSquare(mapSize, seed, 0.8);
-
+        const temperatureMap = diamondSquare(mapSize, seed + 1, 0.8);
+        const humidityMap = diamondSquare(mapSize, seed + 2, 0.8);
 
         let biomeColors = {};
 
@@ -176,41 +119,77 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(response => response.json())
             .then(biomes => {
                 for (const biome of biomes) {
-                    // This is a simplification. Real biome colors are more complex.
-                    // We're just using a random color for each biome for now.
                     biomeColors[biome.id] = `#${Math.floor(Math.random()*16777215).toString(16)}`;
                 }
+                draw2DMap();
+                draw3DMap();
             });
 
-    function getBiome(height, temperature, humidity) {
-        if (height < 0.3) return 'ocean';
-        if (height > 0.9) return 'mountains';
+        function getBiome(height, temperature, humidity) {
+            if (height < 0.3) return 'ocean';
+            if (height > 0.9) return 'mountains';
 
-        if (temperature < 0.3) {
-            if (humidity < 0.3) return 'plains'; // Snowy plains
-            else return 'plains'; // Taiga
-        } else if (temperature < 0.7) {
-            if (humidity < 0.3) return 'plains';
-            else if (humidity < 0.7) return 'forest';
-            else return 'forest'; // Jungle
-        } else {
-            if (humidity < 0.3) return 'desert';
-            else return 'plains'; // Savanna
-        }
-        }
-
-        const temperatureMap = diamondSquare(mapSize, seed + 1, 0.8);
-        const humidityMap = diamondSquare(mapSize, seed + 2, 0.8);
-
-        for (let x = 0; x < mapSize; x++) {
-            for (let z = 0; z < mapSize; z++) {
-                const height = heightMap[x][z];
-                const temperature = temperatureMap[x][z];
-                const humidity = humidityMap[x][z];
-                const biome = getBiome(height, temperature, humidity);
-                ctx.fillStyle = biomeColors[biome];
-                ctx.fillRect(x, z, 1, 1);
+            if (temperature < 0.3) {
+                if (humidity < 0.3) return 'plains';
+                else return 'plains';
+            } else if (temperature < 0.7) {
+                if (humidity < 0.3) return 'plains';
+                else if (humidity < 0.7) return 'forest';
+                else return 'forest';
+            } else {
+                if (humidity < 0.3) return 'desert';
+                else return 'plains';
             }
+        }
+
+        function draw2DMap() {
+            for (let x = 0; x < mapSize; x++) {
+                for (let z = 0; z < mapSize; z++) {
+                    const height = heightMap[x][z];
+                    const temperature = temperatureMap[x][z];
+                    const humidity = humidityMap[x][z];
+                    const biome = getBiome(height, temperature, humidity);
+                    ctx.fillStyle = biomeColors[biome] || '#000000';
+                    ctx.fillRect(x, z, 1, 1);
+                }
+            }
+        }
+
+        function draw3DMap() {
+            const container = document.getElementById('3d-map-container');
+            container.innerHTML = '';
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            const geometry = new THREE.PlaneGeometry(mapSize, mapSize, mapSize - 1, mapSize - 1);
+            const vertices = geometry.attributes.position.array;
+            for (let i = 0, j = 0, l = vertices.length; i < l; i++, j += 3) {
+                vertices[j + 1] = heightMap[Math.floor(i / mapSize)][i % mapSize] * 100;
+            }
+            geometry.attributes.position.needsUpdate = true;
+            geometry.computeVertexNormals();
+
+            const material = new THREE.MeshStandardMaterial({ color: 0xcccccc, wireframe: true });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.rotation.x = -Math.PI / 2;
+            scene.add(mesh);
+
+            const light = new THREE.PointLight(0xffffff, 1, 1000);
+            light.position.set(0, 200, 0);
+            scene.add(light);
+
+            camera.position.z = mapSize / 2;
+            camera.position.y = mapSize / 2;
+
+            function animate() {
+                requestAnimationFrame(animate);
+                mesh.rotation.z += 0.001;
+                renderer.render(scene, camera);
+            }
+            animate();
         }
         displayMessage('ai', `Generated map for seed: ${seed}`);
     }
