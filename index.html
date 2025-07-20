@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Minecraft Seed Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="container">
+        <div id="sidebar">
+    <div class="sidebar-header">
+        <span>EXPLORER</span>
+    </div>
+    <ul class="file-explorer">
+        <li class="file-item">world-settings.json</li>
+        <li class="file-item">seed-requests.ai</li>
+    </ul>
+    <div class="sidebar-section">
+        <div class="sidebar-header">
+            <span>SETTINGS</span>
+        </div>
+        <div class="setting">
+            <label for="version-select">Version:</label>
+            <select id="version-select">
+                <option value="1.20">1.20</option>
+                <option value="1.19">1.19</option>
+                <option value="1.18">1.18</option>
+                <option value="1.17">1.17</option>
+                <option value="1.16" selected>1.16</option>
+            </select>
+        </div>
+        <div class="setting">
+            <label for="feature-select">Features:</label>
+            <input type="text" id="feature-input" placeholder="e.g., ocean, village">
+        </div>
+    </div>
+        </div>
+        <div id="main-content">
+    <div class="editor-tabs">
+        <div class="tab active">Seed Map</div>
+        <div class="tab">AI Chat</div>
+    </div>
+    <div id="map-container" class="content-panel">
+        <canvas id="map-canvas"></canvas>
+            </div>
+    <div id="chat-container" class="content-panel" style="display: none;">
+                <div id="chat-messages"></div>
+        <div class="chat-input-container">
+            <input type="text" id="chat-input" placeholder="Ask the AI for a seed...">
+            <button id="save-chat-btn">Save</button>
+            <button id="load-chat-btn">Load</button>
+            <button id="new-chat-btn">New</button>
+        </div>
+            </div>
+        </div>
+    </div>
+    <script src="ai.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
